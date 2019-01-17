@@ -1,0 +1,2 @@
+com.tolclin.manage.AfricasTalkingGateway
+com.tolclin.manage.MobilePaymentB2CRecipient
