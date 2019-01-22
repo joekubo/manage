@@ -6,12 +6,14 @@ import java.sql.DriverManager;
 import java.awt.BorderLayout;
 import java.awt.Image;
 import java.io.File;
+import java.io.FileInputStream;
 import javax.swing.JOptionPane;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Properties;
@@ -28,6 +30,15 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
+import javax.print.Doc;
+import javax.print.DocFlavor;
+import javax.print.DocPrintJob;
+import javax.print.PrintService;
+import javax.print.PrintServiceLookup;
+import javax.print.SimpleDoc;
+import javax.print.attribute.HashPrintRequestAttributeSet;
+import javax.print.attribute.PrintRequestAttributeSet;
+import javax.print.attribute.standard.Sides;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -319,6 +330,7 @@ public class Manage {
             }
         }
     }
+    
     public void report(String sql,String path,JPanel panel){
         try {
             JasperDesign jd = JRXmlLoader.load(path);
@@ -442,7 +454,7 @@ public class Manage {
    }
    //sendemail_companyupdate(josephmwawasi29@gmail.com","tolclin.it@gmail.com","J35u5Christ",companyname,accountname,location,address,city,phoneno,email,sql,softwarename);
    public void sendemail_companyupdate(String sender,String to,String pass,String companyname,String accountname,String location,String address,String city
-           ,String phoneno,String email,String sql,String softwarename){
+           ,String phoneno,String email,String softwarename){
         final String username = sender;
         final String password = pass;
         DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
@@ -474,7 +486,6 @@ public class Manage {
              System.out.println("Sending");
              Transport.send(message);
              System.out.println("Done");
-             update(sql);
              JOptionPane.showMessageDialog(null, "Company Details Updated Successfully...");
              
          } catch (MessagingException e) {
@@ -489,6 +500,55 @@ public class Manage {
             String sql1 = "SELECT COALESCE(SUM(qty), 0) FROM remove_table WHERE s = '1' AND company_id = '"+company_id+"' AND product_code = '"+product_code+"'";
             String sql2 = "SELECT COALESCE(SUM(qty), 0) FROM sales_table WHERE s = '1' AND company_id = '"+company_id+"' AND product_code = '"+product_code+"'";
             String sql3 = "SELECT COALESCE(SUM(qty), 0) FROM invoice_info WHERE s = '1' AND company_id = '"+company_id+"' AND product_code = '"+product_code+"'";
+            
+            int purchaseqty;
+            int removeqty = 0;
+            int salesqty = 0;
+            int invoiceqty = 0;
+            pst = conn.prepareStatement(sql);
+            rs = pst.executeQuery();
+                if(rs.next()){
+                    purchaseqty = rs.getInt("COALESCE(SUM(qty), 0)");
+                    pst1 = conn.prepareStatement(sql1);
+                    rs1 = pst1.executeQuery();
+                        if(rs1.next()){
+                            removeqty = rs1.getInt("COALESCE(SUM(qty), 0)");
+                            pst2 = conn.prepareStatement(sql2);
+                            rs2 = pst2.executeQuery();
+                                if(rs2.next()){
+                                    salesqty = rs2.getInt("COALESCE(SUM(qty), 0)");
+                                        pst3 = conn.prepareStatement(sql3);
+                                        rs3 = pst3.executeQuery();
+                                            if(rs3.next()){
+                                                invoiceqty = rs3.getInt("COALESCE(SUM(qty), 0)");
+                                            }
+                                }
+                        }
+                        total_stockqty = purchaseqty - (removeqty + salesqty + invoiceqty);
+                        
+                }
+        }catch(Exception e){
+            System.out.println(e+" purchasespanel.totalstock_qty");
+        }finally{
+            try{
+                rs.close();
+                pst.close();
+            }catch(Exception e){
+                
+            }
+        }
+        System.out.println(total_stockqty);
+        return total_stockqty;
+    }
+    
+    public int totalstock_qty_per_purchase(String purchaseid, String company_id){
+        int total_stockqty = 0;
+        try{
+           
+            String sql = "SELECT COALESCE(SUM(qty), 0) FROM purchases_table WHERE s = '1'AND company_id = '"+company_id+"' AND purchase_id = '"+purchaseid+"'";
+            String sql1 = "SELECT COALESCE(SUM(qty), 0) FROM remove_table WHERE s = '1' AND company_id = '"+company_id+"' AND purchase_id = '"+purchaseid+"'";
+            String sql2 = "SELECT COALESCE(SUM(qty), 0) FROM sales_table WHERE s = '1' AND company_id = '"+company_id+"' AND purchase_id = '"+purchaseid+"'";
+            String sql3 = "SELECT COALESCE(SUM(qty), 0) FROM invoice_info WHERE s = '1' AND company_id = '"+company_id+"' AND purchase_id = '"+purchaseid+"'";
             
             int purchaseqty;
             int removeqty = 0;
@@ -731,7 +791,7 @@ props.put("mail.smtp.auth", true);
         JOptionPane.showMessageDialog(null, "Error has occured during sending...Please Check your email password or your internet connection...");
     }
   }
-     public void report_(String sql,String path,JPanel panel,String jasper_path){//panel report
+     public void report_(String sql,String path,JPanel panel){//panel report
         
         try {
             JasperDesign jd = JRXmlLoader.load(path);//Reports/invoice.jrxml
@@ -852,5 +912,34 @@ props.put("mail.smtp.auth", true);
             }
         }
     }
+    public void printing(){
+    try{
+        DocFlavor flavor = DocFlavor.SERVICE_FORMATTED.PAGEABLE;
+        PrintRequestAttributeSet patts = new HashPrintRequestAttributeSet();
+        patts.add(Sides.DUPLEX);
+        PrintService[] ps = PrintServiceLookup.lookupPrintServices(flavor, patts);
+            if (ps.length == 0) {
+                throw new IllegalStateException("No Printer found");
+            }
+        System.out.println("Available printers: " + Arrays.asList(ps));
+        PrintService myService = null;
+            for (PrintService printService : ps) {
+                if (printService.getName().equals("E-PoS_80mm_Thermal_Printer")) {
+                    myService = printService;
+                    break;
+                }
+            }
+            if (myService == null) {
+                throw new IllegalStateException("Printer not found");
+            }
+        FileInputStream fis = new FileInputStream("generated_report.pdf");
+        Doc pdfDoc = new SimpleDoc(fis, DocFlavor.INPUT_STREAM.AUTOSENSE, null);
+        DocPrintJob printJob = myService.createPrintJob();
+        printJob.print(pdfDoc, new HashPrintRequestAttributeSet());
+        fis.close();        
+    }catch(Exception e){
+        
+    }
+   }
 }
 
