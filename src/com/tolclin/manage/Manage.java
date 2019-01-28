@@ -4,16 +4,15 @@ package com.tolclin.manage;
 import java.sql.DriverManager;
 //--------------------------------------------------------------------------------------------------end Javaconnect Libs--
 import java.awt.BorderLayout;
-import java.awt.Image;
+import java.awt.Image;  
+
 import java.io.File;
-import java.io.FileInputStream;
 import javax.swing.JOptionPane;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Properties;
@@ -30,15 +29,6 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
-import javax.print.Doc;
-import javax.print.DocFlavor;
-import javax.print.DocPrintJob;
-import javax.print.PrintService;
-import javax.print.PrintServiceLookup;
-import javax.print.SimpleDoc;
-import javax.print.attribute.HashPrintRequestAttributeSet;
-import javax.print.attribute.PrintRequestAttributeSet;
-import javax.print.attribute.standard.Sides;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -83,7 +73,7 @@ public class Manage {
     public static Connection ConnecrDb(){
          try{ 
              Class.forName("com.mysql.jdbc.Driver");
-             Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/myshopsoftdb","root","JesusChrist1");  
+             Connection conn = DriverManager.getConnection("jdbc:mysql://localhost/myshopsoftdb","root","JesusChrist1");  
              return conn;     
          }catch(Exception e){
              JOptionPane.showMessageDialog(null, e+("Please Check on the Network Connection."
@@ -912,34 +902,17 @@ props.put("mail.smtp.auth", true);
             }
         }
     }
-    public void printing(){
-    try{
-        DocFlavor flavor = DocFlavor.SERVICE_FORMATTED.PAGEABLE;
-        PrintRequestAttributeSet patts = new HashPrintRequestAttributeSet();
-        patts.add(Sides.DUPLEX);
-        PrintService[] ps = PrintServiceLookup.lookupPrintServices(flavor, patts);
-            if (ps.length == 0) {
-                throw new IllegalStateException("No Printer found");
+    
+   public int isEntry(String name,JTable table) {
+        int rowCount = table.getRowCount();
+            for (int i = 0; i < rowCount; i++) {
+                String tname = (String) table.getValueAt(i, 1);
+                    if (name.equalsIgnoreCase(tname)) {
+                        return 1;
+                    }
             }
-        System.out.println("Available printers: " + Arrays.asList(ps));
-        PrintService myService = null;
-            for (PrintService printService : ps) {
-                if (printService.getName().equals("E-PoS_80mm_Thermal_Printer")) {
-                    myService = printService;
-                    break;
-                }
-            }
-            if (myService == null) {
-                throw new IllegalStateException("Printer not found");
-            }
-        FileInputStream fis = new FileInputStream("generated_report.pdf");
-        Doc pdfDoc = new SimpleDoc(fis, DocFlavor.INPUT_STREAM.AUTOSENSE, null);
-        DocPrintJob printJob = myService.createPrintJob();
-        printJob.print(pdfDoc, new HashPrintRequestAttributeSet());
-        fis.close();        
-    }catch(Exception e){
-        
+        return 0;
     }
-   }
+   
 }
 
